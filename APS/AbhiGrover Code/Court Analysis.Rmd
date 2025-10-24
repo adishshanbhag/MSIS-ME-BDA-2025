@@ -1,0 +1,56 @@
+---
+title: "Court Decision Analysis"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+### Execute the following cells to load the libraries
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load the court dataset
+```{r}
+file = ?
+courtData = ?
+```
+
+### Define the sampling space and the picking likelihood vectors
+```{r}
+s = ?
+P = ?
+```
+
+### User-defined function to simulate the court's decision
+```{r}
+simTrial = function(){
+  return(?)
+}
+```
+
+### Replicate the trials of the random experiment a large number of times; in other words, we are simulating the court's decision on a large number of random petitions
+```{r}
+nsimulations = ?
+simulatedData = ?
+```
+
+### Function to check if court has made an incorrect decision on one petition (that is, one trial of the random experiment)
+```{r}
+checkEvent = function(data){
+  
+}
+```
+
+### Calculate the fraction of times the event of interest (court making an incorrect decision) has occured in the simulated data which is what we define as the approximate probability of the event happening in the next trial of the random experiment
+```{r}
+# Fraction of times the court has made an incorrect decision
+?
+```
+
+

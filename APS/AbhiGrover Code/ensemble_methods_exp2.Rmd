@@ -1,0 +1,176 @@
+---
+title: "Exp2_29-9-25"
+output: html_document
+date: "2025-09-29"
+---
+
+```{r}
+#1st question
+simTrial = function(){
+x = vector("numeric", length =10)
+for (i in 1:10){
+  x[i] = rbinom(1,1,0.8)
+}
+sm = sum(x)
+return (sm>5)
+}
+```
+
+```{r}
+#2nd question
+nsimulations = 10000
+simulatedData = replicate(nsimulations, simTrial())
+mean(simulatedData)
+```
+
+```{r}
+#prep for 3rd
+library(rpart)
+df = read.csv("iris.csv")
+nr = nrow(df)
+mclass = vector("numeric", nr)
+for(i in 1:nr){
+  if(df[i,5]=="setosa"){
+    mclass[i] = 0
+  }else if(df[i,5] == "virginica"){
+    mclass[i] = 1
+  }else{
+    mclass[i] = 2
+  }
+}
+df = cbind(df, mclass)
+df
+nr
+```
+
+```{r}
+#3rd question
+s = sample(x=1:nr, size = 0.8*nr, replace = FALSE) # 0.8 * nr is selection 120 samples
+train = df[s,-5]
+test = df[-s,-5]
+mfit = rpart(mclass~., data=train, method="class")
+library(rpart.plot)
+rpart.plot(mfit)
+```
+```{r}
+ypredtrain = predict(mfit,newdata=train, type = "class")
+ypredtest = predict(mfit, newdata=test, type="class")
+trainacc = mean(train[,5]==ypredtrain)
+testacc = mean(test[,5]==ypredtest)
+trainacc
+testacc
+```
+```{r}
+ntrees = 10
+vtrainacc = vector("numeric", length = ntrees)
+vtestacc = vector("numeric", length = ntrees)
+forest = vector("list",length =ntrees)
+for(i in 1:ntrees){
+  s = sample(x=1:nr,size=0.2*nr, replace= FALSE)
+  train = df[s,-5]
+  test = df[-s,-5]
+  mfit = rpart(mclass~.,data = train, method="class")
+  forest[i] = list(mfit=mfit)
+  ypredtrain = predict(mfit, newdata = train, type = "class")
+  ypredtest = predict(mfit, newdata = test, type = "class")
+  vtrainacc[i] = mean(train[,5] ==ypredtrain)
+  vtestacc[i] = mean(test[,5] == ypredtest)
+}
+vtrainacc
+vtestacc
+
+```
+
+```{r}
+sntrain = data.frame(c(1:30))
+sntest = data.frame(c(1:120))
+for(j in 1:ntrees){
+  ypredtrain= predict(forest[[j]], newdata = train, type = "class")
+  ypredtest = predict(forest[[j]], newdata = test, type = "class")
+  sntrain = cbind(sntrain, ypredtrain)
+  sntest = cbind(sntest, ypredtest)
+}
+sntrain
+sntest
+```
+
+```{r}
+library(DescTools)
+get_value = function(x){
+   sm = Mode(x)
+   if(length(sm) == 1){
+        return (sm)
+   }else{
+      return(sm[1])
+   }
+}
+fypredtrain = apply(sntrain[,2:11],1,get_value)
+fypredtest = apply(sntest[,2:11],1,get_value)
+ftrainacc = mean(train[,5]==fypredtrain)
+ftestacc = mean(test[,5]==fypredtest)
+ftrainacc
+ftestacc
+
+```
+
+```{r}
+#5th question
+features = colnames(df)[1:4]
+ntrees=6
+vtrainacc=vector("numeric",length=ntrees)
+vtestacc=vector("numeric",length=ntrees)
+forest=vector("list",length=ntrees)
+features = replicate(ntrees,sample(features, 2, replace = FALSE))
+features
+for(i in 1:ntrees){
+  s=sample(x=1:nr,size=0.5*nr,replace=FALSE)
+  train=df[s,]
+  test=df[-s,]
+  selected_features = unlist(features[[i]])
+  fmla = as.formula(paste("mclass ~", paste(selected_features, collapse = " + ")))
+  mfit=rpart(fmla,data=train,method="class")
+  forest[[i]]=mfit
+  ypredtrain=predict(mfit,newdata=train,type="class")
+  ypredtest=predict(mfit,newdata=test,type="class")
+  vtrainacc[i]=mean(train[,6]==ypredtrain)
+  vtestacc[i]=mean(test[,6]==ypredtest)
+}
+print(vtrainacc)
+print(vtestacc)
+
+```
+```{r}
+sntrain=data.frame(c(1:nrow(train)))
+sntest=data.frame(c(1:nrow(test)))
+for(j in 1:ntrees){
+  ypredtrain=predict(forest[[j]],newdata=train,type="class")
+  ypredtest=predict(forest[[j]],newdata=test,type="class")
+  sntrain=cbind(sntrain,ypredtrain)
+  sntest=cbind(sntest,ypredtest)
+}
+sntrain
+sntest
+```
+
+```{r}
+library(DescTools)
+ 
+get_value=function(x){
+  sm=Mode(x)
+  if(length(sm)==1){
+    return(sm)
+  }else{
+    return(sm[1])
+  }
+}
+ 
+fypredtrain = apply(sntrain[, 2:7],1, get_value)
+fypredtest = apply(sntest[, 2:7], 1, get_value)
+ 
+ftrainacc = mean(train$mclass == fypredtrain)
+ftestacc = mean(test$mclass == fypredtest)
+ 
+print(paste("Training Accuracy: ", ftrainacc))
+print(paste("Testing Accuracy: ", ftestacc))
+```
+

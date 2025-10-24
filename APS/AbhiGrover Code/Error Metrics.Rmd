@@ -1,0 +1,107 @@
+---
+title: "Error metrics"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+#### Execute the following cells to load the libraries
+```{r}
+library(ggplot2)
+library(dplyr)
+library(titanic)
+library(caret)
+library(pROC)
+library(PRROC)
+library(splitstackshape)
+```
+
+
+#### Load the in-built titanic_train dataset
+```{r}
+data("titanic_train")
+df = titanic_train
+head(df, 2)
+#str(df)
+```
+
+#### Preprocess the dataset (note the chained dplyr usage)
+```{r}
+# 
+df = titanic_train %>%
+  select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
+  mutate(Sex = as.factor(Sex),
+         Survived = as.factor(Survived)) %>%
+  na.omit()  # Remove rows with missing values for simplicity
+head(df, 2)
+str(df)
+```
+
+#### Explore the class distribution (imbalanced target: Survival, 1 means survived, 0 means did not survive)
+```{r}
+table(titanic_train$Survived)
+# Graphical approach
+dfLabel = setNames(data.frame(table(titanic_train$Survived)), c('Label', 'Frequency'))
+p = ggplot(data = dfLabel) +
+  geom_bar( aes(x = Frequency, y = Label),
+            stat = 'identity', fill = 'steelblue', width = 0.3) +
+  theme(text = element_text(size = 14, face = 'bold'),
+  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  xlab('') + ylab('Count') +
+  ggtitle('Distribution of Output Labels')
+p
+```
+
+#### Stratified train-test split of the dataset
+```{r}
+trainIndex = as.numeric(rownames(as.data.frame(stratified(df, 'Survived', 0.8, set.seed(42)))))
+X_train = df[trainIndex, ]
+X_test = df[-trainIndex, ]
+```
+
+
+#### Fit a logistic regression model using the train data to predict the output class
+```{r}
+model <- glm(Survived ~ ., data = X_train, family = binomial)
+summary(model)
+```
+
+#### Predict on the test data
+```{r}
+pred_prob = predict(model,newdata = X_test, type = "response")
+# Convert probabilities to binary outcomes
+threshold = 0.5
+pred_class = ifelse(pred_prob>threshold,1,0)
+```
+
+
+#### Build the confusion matrix and interpret the error metrics
+```{r}
+confusionMatrix(as.factor(pred_class), as.factor(X_test$Survived))
+```
+
+#### Plot the ROC curve for different thresholds
+```{r}
+# ROC curve and AUC
+roc_obj = roc(X_test$Survived, pred_prob)
+auc_val = auc(roc_obj)
+
+# Plot the ROC curve
+plot(roc_obj, col = "blue", main = paste("ROC Curve (AUC =", round(auc_val, 2), ")"))
+
+### Precision-Recall Curve ###
+# Create PRROC object for Precision-Recall curve
+pr = pr.curve(scores.class0 = pred_prob[X_test$Survived == 1], 
+               scores.class1 = pred_prob[X_test$Survived == 0],
+              curve = TRUE)
+
+# Plot Precision-Recall curve
+plot(pr, main = "Precision-Recall Curve")
+```
+
+
+

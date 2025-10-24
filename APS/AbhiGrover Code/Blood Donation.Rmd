@@ -1,0 +1,98 @@
+---
+title: "Blood Donation"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+
+#### Blood type percentage in population in the order O-, O+, A-, A+, B-, B+, AB-, AB+
+```{r}
+blood_population_percentage = c(6.6,37.4,6.3,35.7,1.5,8.5,0.6,3.4)
+blood_population_proportion = blood_population_percentage/100
+names(blood_population_proportion) = c('O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+')
+print(blood_population_proportion)
+```
+
+#### Create the blood transfusion compatibility matrix by building it row-by-row starting with recipient type O- followed by recipient O+ etc
+```{r}
+recipient_Ominus = c(1,0,0,0,0,0,0,0)
+recipient_Oplus  = c(1,1,0,0,0,0,0,0)
+recipient_Aminus = c(1,0,1,0,0,0,0,0)
+recipient_Aplus  = c(1,1,1,1,0,0,0,0)
+recipient_Bminus = c(1,0,0,0,1,0,0,0)
+recipient_Bplus  = c(1,1,0,0,1,1,0,0)
+recipient_ABminus= c(1,0,1,0,1,0,1,0)
+recipient_ABplus = c(1,1,1,1,1,1,1,1)
+
+#compatibility matrix
+C = matrix(c(recipient_Ominus,recipient_Oplus, recipient_Aminus, recipient_Aplus, recipient_Bminus, recipient_Aplus, recipient_ABminus, recipient_ABminus),nrow = 8,ncol = 8,byrow = T)
+rownames(C) = names(blood_population_proportion)
+colnames(C) = rownames(C)
+C
+```
+
+#### Probability of a successful transfusion between and random donor and a random recipient
+```{r}
+s = c('O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+')
+p = blood_population_proportion
+
+simTrial = function(){
+  sample(s,2,T,p)
+}
+
+nsimulations = 100
+simulatedData = replicate(nsimulations, simTrial())
+
+checkEvent = function(data){
+  return (C[data[2],data[1]])
+}
+
+mean(apply(simulatedData,2,checkEvent))
+```
+
+#### In a battle field hospital a soldier is brought in for immediate blood transfusion. Only blood type A+ is available in the supply for immediate use. We do not know the wounded soldier’s blood type. There are two other soldiers present who are willing to donate their blood. We have time to do one blood typing before time becomes critical. What should we do?
+```{r}
+# Probability of successful transfusion to wounded soldier if we test the blood type of the wounded soldier
+# Compatibility matrix with recipient entries zeroed out for A+ and AB+
+
+# Probability of successful transfusion to wounded soldier if we test the blood type of one of the other soldiers
+```
+
+```{r}
+T = 5
+t = 0.05
+n = T/t
+x = rbinom(1,n,0.4)
+outcomes = 0:n
+rv = dbinom(outcomes,n, 0.4)
+
+moment_ans = function(q){
+  s= 0
+  for(i in outcomes){
+    s = s+(i^q)*rv[i+1]
+  }
+  return (s)
+}
+
+print(moment_ans(1))
+mvar = moment_ans(2)-((moment_ans(1))^2)
+print(mvar)
+
+plot(outcomes, rv, type = 'h', xlim = c(0,n-1), ylim = c(0,0.2), main = "4th question")
+  
+lambda1 = c(10,20,30,40,50)
+x = rpois(1,lambda = lambda1)
+#n = 50
+for (lambdaVar in lambda1){
+  rv2 = dpois(outcomes, lambdaVar)
+  plot(outcomes, rv2, type = 'h', xlim = c(0,n-1), ylim = c(0,0.2), main = "5th question")
+}
+
+```
+
+

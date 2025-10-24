@@ -1,0 +1,165 @@
+---
+title: "APS Lab 3"
+output: html_document
+date: "2025-10-13"
+---
+```{r}
+library(MASS)
+library(e1071)
+data(epil)
+ndata = epil
+```
+
+Step 1
+```{r}
+Y = ndata[,1]
+hist(Y, breaks=40,freq=TRUE)
+
+```
+Step 2
+```{r}
+breaks = seq(min(Y)-0.5, max(Y)+0.5, by=1)
+hist(Y, breaks = breaks, freq=FALSE, main = "PMF of Y")
+skewness(Y)
+```
+```{r}
+my = mean(Y)
+mv = var(Y)
+print(my)
+print(mv) #overdispersed data
+```
+Step 3:
+```{r}
+poismod = fitdistr(Y,densfun="poisson")
+lam = poismod$estimate
+sprintf("Log likelihoof:%f", poismod$loglik)
+```
+```{r}
+k = 0:max(Y)
+pois_pmf = dpois(k, lambda = lam)
+hist(Y, breaks = breaks, freq=FALSE, main = "PMF of Y")
+lines(k, pois_pmf, lwd=1, col="red")
+```
+Step 4: 
+```{r}
+nbmod = fitdistr(Y, densfun = "Negative Binomial")
+nb_size = nbmod$estimate[1]
+nb_mu = nbmod$estimate[2]
+nb_pmf = dnbinom(k, nb_size, mu=nb_mu)
+sprintf("Log likelihood: %f", nbmod$loglik)
+hist(Y, breaks=breaks, freq = FALSE, main="PMF of Y")
+lines(k, nb_pmf, lwd=1, col="red")
+```
+Step 5:
+```{r}
+nr = nrow(ndata)
+s = sample(x=1:nr, size=0.8*nr, replace = FALSE)
+traindata = ndata[s,]
+testdata = ndata[-s,]
+linearmod = lm(y~lbase+lage+trt, data=traindata)
+ypredtrain = predict(linearmod, traindata)
+ypredtest = predict(linearmod, testdata)
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(linearmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+Step 6:
+```{r}
+poistrgmod = glm(y~lbase+lage+trt, data=traindata, family="quasipoisson")
+ypredtrain = predict(poistrgmod, traindata)
+ypredtest = predict(poistrgmod, testdata)
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(poistrgmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+7. Develop a Generalized Linear Model (GLM) regression using negative binomial 
+likelihood as the loss to model y vs f in 5. Evaluate MAE, RMSE and log likelihood 
+values. Which model (5,6,7) is best (best in what metric?)?
+```{r}
+nbregmod = glm.nb(y~lbase+lage+trt, data=traindata)
+ypredtrain = predict(nbregmod, traindata)
+ypredtest = predict(nbregmod, testdata)
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(nbregmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+8. Exploratory: Perform a log transformation on y(z=ln(1+y)). Implement regression 
+(z~lbase+lage+trt) using the methods in steps 5,6, and 7. Explain your observations.
+
+```{r}
+nr = nrow(ndata)
+s = sample(x=1:nr, size=0.8*nr, replace = FALSE)
+traindata = ndata[s,]
+testdata = ndata[-s,]
+linearmod = lm(log(1+y)~lbase+lage+trt, data=traindata)
+zpredtrain = predict(linearmod, traindata)
+zpredtest = predict(linearmod, testdata)
+ypredtrain = exp(zpredtrain)-1
+ypredtest = exp(zpredtest)-1
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(linearmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+```{r}
+poistrgmod = glm(log1p(y)~lbase+lage+trt, data=traindata, family="quasipoisson")
+zpredtrain = predict(poistrgmod, traindata)
+zpredtest = predict(poistrgmod, testdata)
+ypredtrain = exp(zpredtrain)-1
+ypredtest = exp(zpredtest)-1
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(poistrgmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+```{r}
+nbregmod = glm.nb(log1p(y)~lbase+lage+trt, data=traindata)
+zpredtrain = predict(nbregmod, traindata)
+zpredtest = pred                    ict(nbregmod, testdata)
+ypredtrain = exp(zpredtrain)-1
+ypredtest = exp(zpredtest)-1
+rmsetrain = sqrt(mean((traindata[,1]-ypredtrain)^2))
+maetrain = mean(abs(traindata[,1]-ypredtrain))
+rmsetest = sqrt(mean((testdata[,1]-ypredtest)^2))
+maetest = mean(abs(testdata[,1]-ypredtest))
+likely = logLik(nbregmod)
+sprintf("Train RMSE: %f",rmsetrain)
+sprintf("Train MAE: %f",maetrain)
+sprintf("Test RMSE: %f",rmsetest)
+sprintf("Test MAE: %f",maetest)
+sprintf("Log Likelihood: %f",likely)
+```
+

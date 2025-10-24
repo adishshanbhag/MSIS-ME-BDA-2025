@@ -1,0 +1,171 @@
+---
+title: "Quantifying uncertainty using simulation"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+#### Execute the following cells to load the libraries
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+#### How likely is it to get three heads when tossing a fair coin 10 times?
+
+### Define the sampling space and picking likelihood vectors
+```{r}
+s = c(?, ?)
+p = c(?, ?)
+```
+
+
+### Function to simulate one trial of the random experiment which in this case is tossing a fair coin 10 times
+```{r}
+simTrial = ?
+```
+
+### Replicate the trials of the random experiment a large number of times; in other words, we are simulating the random experiment a large number of times
+```{r}
+nsimulations = ?
+simulatedData = ?
+```
+
+### Function to check if event of interest (denoted as E) has occured which in this case is getting exactly 3 heads
+```{r}
+checkEvent = ?
+```
+
+### Calculate the fraction of times the event of interest E occured in the simulated data which is what we define as the approximate probability of the event E happening in the next trial of the random experiment
+```{r}
+
+```
+
+#### Suppose you are the head of a team that comprises 5 newly recruited software engineers. All 5 of them are equally skilled and are working on a major project under your guidance for which each one of them works on their respective code modules and merges it with the master project code. All modules have identical workloads. This merger happens on a weekly basis after which you compile the master project code. During a particular week's check, you find 5 compilation errors when compiling the master project code, with 4 of those errors tracing back to the module submitted by software engineer-1. The other software engineers thereafter call software engineer-1 clumsy. However, software engineer-1 claims that it was just bad luck and that any of them could have had their modules resulting in 4 out of the 5 compilation errors that you saw. As the team lead, the challenge for you here is to see if software engineer-1 has some valid statistical support for their position. To that end, you, as the team lead, first hypothesize that software engineer-1 is not clumsy. This means, you assume that any of the 5 software engineers' modules is equally likely to result in a compilation error. Under this hypothesis, using simulation calculate the probability that accused software engineer-1 submits a module that leads to at least 4 of the 5 compilation errors when compiling the master project code. Using the resulting probability, settle the claim as to whether software engineer-1 is clumsy as their colleagues are accusing or is actually not.
+
+### Define the sampling space and probability vectors
+```{r}
+
+```
+
+### Function to simulate the one trial of the random experiment
+```{r}
+simTrial = ?
+```
+
+### Function to check if the event of interest--software engineer-1's module has resulted in at least 4 out of the 5 compilation errors--has occurred
+```{r}
+checkEvent = ?
+```
+
+### Simulate the trials of the random experiment a large number of times 
+```{r}
+nsimulations = ?
+simulatedData = ?
+```
+
+### Calculate the probability that software engineer-1's module caused at least 4 out of the 5 compilation errors
+```{r}
+?
+```
+
+
+#### Suppose we have 30 students in a class. There are 365 different days in a year thar are possible for a student's birthday. What is the probability that at least two students in the class have the same birthday?
+
+### Define the sampling space and probability vectors
+```{r}
+s = c(1:365)
+p = replicate(365,1/365)
+```
+
+### Function to simulate the one trial of the random experiment
+```{r}
+students = 30
+simTrial = function(){
+  return (sample(s,size = students, T, prob = p))
+}
+```
+
+### Function to check if the event of interest--two students sharing their birthday--has occured
+```{r}
+checkEvent = function(data){
+  return (length(unique(data))==students)
+}
+```
+
+### Simulate the trials of the random experiment a large number of times
+```{r}
+nsimulations = 1e4
+simulatedData = replicate(nsimulations, simTrial())
+```
+
+### Calculate the probability that at least 2 students share their birthday
+```{r}
+1-mean(apply(simulatedData,2,checkEvent))   
+```
+```{r}
+P = 1
+for(j in c(2:30)){
+  P = P*((365-j+1)/365)
+}
+1-P
+```
+### Mr. Brown needs to take 1 tablet of type A and 1 tablet of type B together on a regular basis. One tablet of type A corresponds to a 1 mg dosage, and so does 1 tablet of type B. He keeps these two types of tablets in two separately labeled bottles as they cannot be differentiated easily. One day, on a buisness trip, Mr. Brown brought 10 tablets of type A and 10 tablets of type B. Unfortunately, he drops the bottles and breaks them. He does not have the time to go to a pharmacy to buy a new set of tablets but he needs to take his required dosage of both tablets A and B. The safe dosage that he needs for both tablets A and B is given by 0.9 mg ≤ safe dosage ≤ 1.1 mg. Taking either an excess or a shortage of the required intake will result in serious health issues.
+
+- Suppose that after investigating the broken bottles, Mr. Brown finds 2 tablets that are still intact in the bottle for tablet A. The other 18 tablets are found to be mixed in a pile. Is it better for him to take one known tablet from the bottle and one from the pile, or take two tablets from the pile? Answer this by calculating the respective probabilities that he will not have any serious health issues for both options.
+- Suppose that after investigating the broken bottles, Mr. Brown finds that the tablets are all mixed up. What is the probability that he will not have any serious health issues if he randomly picks 2 tablets?
+```{r}
+#sampling space for the partially broken bottle
+s1 = c('A1','A2')
+#picking likelihood for partially broken bottle
+p1 = c(0.5,0.5)
+
+#sampling space for the mixed up pile
+s2 = c(paste0('A',c(3:10)),paste0('B',c(1:10)))
+#picking likelihood for mixed up pile
+p2 = replicate(18,1/18)
+```
+
+```{r}
+#user-defined function to simulate one trial of the random experiment: picking one tablet from the partially broken bottle and the other tablet from the mixed up pile
+simTrial = function(){
+ # return (c(sample(s1,1,replace = T, prob = p1),sample(s2,1,replace=T,p2)))
+  #only picking both the tablets from the pile
+  return (sample(s2,2,T,p2))
+}
+simTrial()
+```
+```{r}
+nsimulations = 1e4
+simulatedData = replicate(nsimulations, simTrial())
+```
+
+```{r}
+#user defined function to check if the event of interest has occurred in one trial of the random experiment: Mr. Brown picks a type A tablet anda type B tablet
+
+checkEvent = function(data){
+  return (sum(grepl('A',data))==1)
+}
+```
+
+```{r}
+#calculate the fraction of times the event of interest occurred in the simulated data
+mean(apply(simulatedData,2,checkEvent))
+```
+
+#### Load the 'emergency.csv' file to a dataframe and answer the following questions:
+1. What is the probability that the next incoming patient is in good, fair, and serious condition?
+2. What is the probability that the next incoming patient is insured and not insured?
+3. What is the probability that the next incoming patient is serious and insured?
+4. Given that the next incoming patient is known to be serious, what is the probability that they are insured?
+5. Given that the next incoming patient is known to be insured, what is the probability that they are serious?
+6. Given that the next incoming patient is known to be not insured, what is the probability that they are in a good or fair condition?
+```{r}
+?
+```
+
+
