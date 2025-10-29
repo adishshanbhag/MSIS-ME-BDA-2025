@@ -1,3 +1,5 @@
+
+import numpy as np
 class MPS:
     #user registration - name, phone no. account no. -- generate MPS ID once done
     #5 debit transaction allowed per day - amount 20k -- if 20 k reached then 3 transactions with daily limit message
@@ -13,22 +15,42 @@ class MPS:
 
     class database:
         def __init__(self, capacity):
-            self.capacity = capacity
-            self.table = [[] for _ in range(self.capacity)]   
-        def _hash(self, value):
-            return value%self.capacity
-        def insert(self, user):
-            index = self._hash(user.MpsID)
-            if self.table[index] is not None:
-                temp = self.table[index]
-                while temp.next!=None:
-                    temp = temp.next
-                temp.next = user
-            else:
+            self.table_size = 11
+            self.hash_table = [None]*self.table_size
+            self.p = 13
+            self.a = np.random.randint(1, self.p-1)
+            self.b = np.random.randint(0, self.p-1)
+
+        def _hash_function_(self, id):
+            code = 0
+            id = str(id)
+            for ch in id:
+                code = code << 5
+                code = code + ord(ch)
+            return code
+        def _compression_(self, code):
+            return ((((code*self.a)+self.b)%self.p)%self.table_size)
+        
+        def _hash_(self, id):
+            code = self._hash_function_(id)
+            bucket = self._compression_(code)
+            return bucket
+        
+        def is_member(self, id):
+            bucket = self._hash_(id)
+            current = self.hash_table[bucket]
+
+            while current!=None:
+                if current.MpsID == id:
+                    return True
+                else:
+                    current = current.next
+            return False
+        def add_user_to_list(self,mpsID, name, phone, accNo):
+            
                 
 
     class userRegistration:
-        
         class User:
             def __init__(self, name, phone, accNo):
                 self.name = name
@@ -53,6 +75,6 @@ class MPS:
             self.enrolled_Count = 1
             self.tail = None
 
-        def add_user_to_list(self, name, phone, accNo):
-            
+        
+
         
