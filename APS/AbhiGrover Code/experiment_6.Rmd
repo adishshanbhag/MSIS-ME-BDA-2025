@@ -1,0 +1,241 @@
+---
+title: "experiment_6"
+output: html_document
+date: "2025-11-10"
+---
+1. Download the Boston dataset from library MASS. Find the column wise mean and standard deviation values. These are the true population parameters for this
+experiment. 
+```{r}
+library(MASS)
+data("Boston")
+X = Boston
+meanV = vector("numeric", ncol(X)) #to store the values of columnwise mean
+sdV = numeric(ncol(X)) #to store the values of columnwise standard deviation
+
+#Calculating mean using apply
+meanV = apply(X, 2, mean)
+
+#Calulcating standard deviation
+sdV = apply(dataset, 2, sd)
+
+meanV
+sdV
+```
+2. One sample Mean Z-Test: Consider the rm column. 40 samples are randomly selected. A Null hypothesis is given to you that that true mean (u0) is equal to 6.2.
+Based on the available samples, suggest whether you should accept this hypothesis or reject this hypothesis. Assume a significance level of 5%.
+
+```{r}
+rmCol =  X[,6]
+s = sample(rmCol, size=40, replace = FALSE)
+u0 = 6.2
+alpha = 0.05
+s_mean = mean(s) #sample statistic in this case
+z = (s_mean-u0)/sdV[6]/sqrt(length(s)) #z-test assumes that true sd is more
+p_value = 2*pnorm(abs(z), mean = 0, sd = 1, lower.tail = FALSE)
+print(p_value)
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+#
+```
+
+3. One sample proportion Z-Test: Consider the crim column. Create an indicator variable (0 or 1) high_crime. A location is high crime if the crime rate is greater than
+median crime rate. We are interested in the proportion of locations which have a high crime rate. 40 samples (size=40) are randomly selected. A Null hypothesis is given to you
+that that true proportion (p0) is equal to 0.5. Based on the available samples, suggest whether you should accept this hypothesis or reject this hypothesis. Assume that the
+standard deviation of sample proportion is given by sqrt(p0*(1-p0)/size). Assume a significance level of 5%.
+
+```{r}
+p0 = 0.5
+alpha = 0.05
+size= 40
+high_crime = (X$crim>median(X$crim))
+s=sample(high_crime, size = size, replace = FALSE)
+obs_proportion = mean(s) #statistic in this case
+Z = (obs_proportion-p0)/sqrt(p0*(1-p0)/size) #sd for obs_proportion if null hypothesis is true
+p_value = 2*pnorm(abs(Z), mean = 0 , sd = 1, lower.tail = FALSE)
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+```
+
+4. Two-Sample Difference of Means Z-Test: Consider the medv column. Split the column into two sets: locations where chas=1 and locations where chas=0. 20 samples
+are randomly selected from each set. A Null hypothesis is given to you that that true mean of both sets are equal. Based on the available samples, suggest whether you should
+accept this hypothesis or reject this hypothesis. Assume that standard deviation of difference of two sample means is given as total_sd=sqrt(sam1_sd^2+sam2_sd^2),
+where sam1_sd and sam2_sd are the standard deviation of individual sample means. Assume a significance level of 5%.
+
+```{r}
+d0 = 0
+alpha = 0.05
+size = 20
+
+s1 = X$medv[X$chas==1] #price of location near the charles river
+s2 = X$medv[X$chas==0] #price of location away from the charles river
+
+s1_tm = mean(s1) #true mean for set 1
+s2_tm = mean(s2) #true mean for set 2
+
+sam1 = sample(s1, size = 20, replace = FALSE)
+sam2 = sample(s2, size = 20, replace = FALSE)
+
+d_obs = mean(s1)-mean(s2) #statistic
+
+
+sam1_sd = sd(sam1)/sqrt(size)
+sam2_sd = sd(sam2)/sqrt(size)
+
+total_sd=sqrt(sam1_sd^2+sam2_sd^2)
+
+
+#statistic is 0 mean; sd = tot_sd; distribution = Gaussian
+
+z = d_obs/total_sd #scaled statistic
+p_value = 2*pnorm(abs(z), mean = 0 , sd = 1, lower.tail = FALSE)
+p_value
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+
+```
+
+5. Two-Sample Difference of proportions Z-Test: Consider the tax column. Create an indicator variable (0 or 1) high_tax. A location is high tax if the tax is greater than median
+tax. We are interested in the proportion of locations which have a high tax rate. Split the column into two sets: locations where chas=1 and locations where chas=0. 20 samples
+are randomly selected from each set. A Null hypothesis is given to you that that true proportions of both sets are equal. Based on the available samples, suggest whether you
+should accept this hypothesis or reject this hypothesis. Assume that standard deviation of sample proportion is sqrt(p(1-p)(2/size)) where p is the combined proportion of both sets.
+Assume a significance level of 5%.
+
+```{r}
+dp0=0
+alpha = 0.05
+size = 20
+
+high_tax = (X$tax>median(X$tax))
+
+s1 = high_tax[X$chas==1] #price of location near the charles river
+s2 = high_tax[X$chas==0] #price of location away from the charles river
+
+tp_s1 = mean(s1)
+tp_s2 = mean(s2)
+
+sam1 = sample(s1, size, replace= FALSE)
+sam2 = sample(s2, size, replace= FALSE)
+
+obs_dp = mean(sam1) - mean(s2)
+combined_p = mean(c(s1,s2))
+obs_sd = sqrt(combined_p*(1-combined_p)/size)
+
+Z = obs_dp-0/obs_sd
+p_value = 2*pnorm(abs(z), mean = 0 , sd = 1, lower.tail = FALSE)
+p_value
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+
+```
+6. Correlation Z-Test: Consider the rm and medv columns. Find the correlation using all samples. This is the true correlation between these two variables. Sample 40
+observations randomly and test the Null Hypothesis that the two variables are uncorrelated. Use Fisher Transformation 0.5*log((1+r)/(1-r)) to convert r to normally
+distributed random variable. The standard deviation of the obtained random variable is sqrt(1/(size-3)). Assume a significance level of 5%.
+
+```{r}
+r = 0
+alpha = 0.05
+size = 40
+x1 = X$rm
+x2 = X$medv
+true_r = cor(x1, x2)
+s1 = sample(x1, size, replace = FALSE)
+s2 = sample(x2, size, replace = FALSE)
+
+sam_r = cor(s1, s2)
+
+#convert sam_r to Gaussian Distribution
+z_r = 0.5*log((1+sam_r)/(1-sam_r))
+sd_r = sqrt(1/(size-3))
+z = z_r/sd_r
+p_value = 2*pnorm(abs(z), mean = 0 , sd = 1, lower.tail = FALSE)
+p_value
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+
+```
+
+7. Chi-square Independence Test: Create two indicator variables as high_crime and high_tax. Run chi-square independence test on these two variables and identify if these
+variables are independent. A chi-square test assumes a Null Hypothesis that two variables are independent. Assume a significance level of 5%
+
+```{r}
+high_crime = (X$crim>median(X$crim))
+high_tax = (X$tax>median(X$tax))
+alpha = 0.05
+
+test = chisq.test(high_crime, high_tax)
+p_value = test$p.value
+p_value
+if (p_value <0.05){
+  print("Reject the null hypothesis")
+}else{
+  print("Accept the null hypothesis")
+}
+```
+
+8. Exploratory: Repeat step 2 for various Null Hypothesis: u0={5, 5.6, 6.2, 6.8, 7.4}. Record your p-values in each case.
+
+```{r}
+suppressWarnings({
+  rmCol = X[,6]
+  s = sample(rmCol, size = 40, replace = FALSE)
+  u0 = c(5, 5.6, 6.2, 6.8, 7.4)
+  alpha = 0.05
+  s_mean = mean(s)
+  p_value = numeric(length(u0))
+  
+  for (i in 1:length(u0)){
+    z = (s_mean - u0[i]) / (sdV[6] / sqrt(length(s))) # standard error
+    p_value[i] = 2 * pnorm(abs(z), lower.tail = FALSE)
+    
+    if (p_value[i] < alpha){
+      print(paste("Reject the null hypothesis for u0 =", u0[i], "p_value = ", p_value[i]))
+    } else {
+      print(paste("Accept the null hypothesis for u0 =", u0[i], "p_value = ", p_value[i]))
+    }
+  }
+})
+```
+
+9. Exploratory: Repeat step 3 for various Null Hypothesis: p0={0.2,0.4,0.6,0.8}. Record
+your p-values in each case.
+
+```{r}
+p0 = c(0.2, 0.4, 0.6, 0.8)
+alpha = 0.05
+size = 40
+
+high_crime = (X$crim > median(X$crim))
+s = sample(high_crime, size = size, replace = FALSE)
+obs_proportion = mean(s)
+
+p_value = numeric(length(p0))
+
+for (i in 1:length(p0)) {
+  Z = (obs_proportion - p0[i]) / sqrt(p0[i] * (1 - p0[i]) / size)
+  p_value[i] = 2 * pnorm(abs(Z), lower.tail = FALSE)
+}
+for(i in 1:length(p0)){
+  if(p_value[i] < alpha){
+    print(paste("Reject null hypothesis for p0 =", p0[i], "p_value: ", p_value[i]))
+  } else {
+    print(paste("Accept null hypothesis for p0 =", p0[i], "p_value: ", p_value[i]))
+  }
+}
+```
+
+

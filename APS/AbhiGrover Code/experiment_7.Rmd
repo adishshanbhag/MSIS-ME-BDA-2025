@@ -1,0 +1,255 @@
+---
+title: "Experiment_7"
+output: html_document
+date: "2025-11-17"
+---
+1. 
+```{r}
+library(dplyr)
+ 
+X=read.csv("E:/251100670036/APS/MovieLens.csv")
+ 
+count_users=count(X,User)
+ 
+keep_users=count_users[count_users$n>=5,]
+ 
+x=filter(X,User %in% keep_users$User)
+print(count_users)
+```
+
+2.
+```{r}
+Xm = mutate(X, timestamp2 = as.POSIXct(timestamp, origin = "1970-01-01", tz = "UTC"))
+ 
+Xm_group = group_by(Xm,User)
+ 
+Xm_increase = arrange(Xm_group,Xm_group$timestamp2,by_group=TRUE)
+ 
+nr = nrow(count_users)#total number of users
+ 
+train_list = list()
+ 
+test_list = list()
+ 
+for(i in 1:nr){
+  userid = keep_users[i,1]
+  usercount=keep_users[i,2]
+  temp=Xm_increase[Xm_increase$User==userid,]
+  train_list[[i]]=temp[1:usercount-1,]
+  test_list[[i]]=temp[usercount,]
+}
+ 
+trainset = bind_rows(train_list)
+testset = bind_rows(test_list)
+```
+
+3.
+```{r}
+#EDA1
+summary(trainset$rating)
+
+#EDA2
+keep_users2 = arrange(keep_users,desc(keep_users$n))
+keep_users2
+
+#EDA3
+ 
+movies_count=count(X,item)
+ 
+movies_count=arrange(movies_count,desc(movies_count$n))
+ 
+print(movies_count)
+```
+
+4.
+
+```{r}
+#model A
+movies_count=arrange(movies_count,movies_count$item)
+nr=nrow(movies_count)
+C=20
+bayes_score=numeric(nr)
+for(i in 1:nr){
+  num=C*mean(trainset$rating)+movies_count[i,2]*mean(trainset[trainset$item==i,]$rating)
+  den=C+movies_count[i,2]
+  bayes_score[i]=num/den
+}
+movies_count2=cbind(movies_count,bayes_score)
+movies_count2d=arrange(movies_count2,desc(movies_count2$bayes_score))
+```
+
+
+5. Make recommendations for the test set using Model A. Evaluate HitRate@10 and 
+Mean reciprocal rank (MRR) vectors.
+```{r}
+calculaterecommendationA=function(u){
+  #return dataframe containing recommendation and rank
+  r=data.frame(matrix(0,nrow = 10, ncol = 2))
+  #col1;movieID; col2:movie rank
+  h=1
+  g=1
+  while(g<=10){
+    if(movies_count2d[h,1] %in% trainset[trainset$User==u,2]){
+      h=h+1
+    }else{
+      r[g,1]=movies_count2d[h,1]
+      r[g,2]=g
+      g=g+1
+      h=h+1
+    }
+  }
+  return(r)
+}
+ 
+ 
+ 
+n=nrow(testset)
+hitA=numeric(n)
+k=10
+for(i in 1:n){
+  ui=testset[i,1] #userid to predict for
+  tm=testset[i,2] #target movie
+  #function A take i/p and return recommendation
+  nA=calculaterecommendationA(ui)
+  if(tm %in% nA[,1]){
+    hitA[i]=1
+  }
+}
+print(mean(hitA))
+```
+
+6.
+```{r}
+#modelB
+library(reshape2)
+ui_mat=acast(trainset, User~item, value.var = "rating", drop = FALSE)
+rmeans = rowMeans(ui_mat, na.rm = TRUE)
+ui_norm = ui_mat
+for(i in 1:nrow(ui_mat)){
+  #to remove bias in dataset
+  ui_norm[i,] = ui_norm[i,]-rmeans[i]
+}
+ui_norm[is.na(ui_norm)]=0
+sim = cor(ui_norm)
+sim
+```
+
+7.
+```{r}
+scoresB = function(u) {
+  
+  # movies rated by this user
+  ur = trainset[trainset$User == u, c("item", "rating")]
+  
+  # similarity matrix column names (as numeric movie IDs)
+  sim_items = as.numeric(colnames(sim))
+  
+  # keep only movies that exist in similarity matrix
+  ur = ur[ur$item %in% sim_items, ]
+  
+  # map movie IDs to column indices
+  idx = match(ur$item, sim_items)
+
+  # prediction score vector for all movies
+  pred = numeric(length(sim_items))
+  
+  # compute predicted score using item-based CF
+  for (i in 1:length(sim_items)) {
+    sim_vec = sim[i, idx]
+    pred[i] = sum(sim_vec * ur$rating)
+  }
+  
+  # arrange descending
+  df = data.frame(
+    movie = as.numeric(sim_items),
+    score = pred
+  )
+  
+  df = df[order(-df$score), ]
+  return(df)
+}
+
+calculateRecommendationB = function(u) {
+  
+  scored = scoresB(u)
+  
+  # movies user already rated
+  seen = trainset[trainset$User == u, "item"]
+  
+  r = data.frame(movie = integer(10), rank = 1:10)
+  
+  h = 1   # pointer in sorted list
+  g = 1   # how many recommendations collected
+  
+  while (g <= 10) {
+    m = scored$movie[h]
+    
+    if (!(m %in% seen)) {
+      r$movie[g] = as.numeric(m)
+      g = g + 1
+    }
+    
+    h = h + 1
+  }
+  
+  return(r)
+}
+
+
+#Hit @10
+
+n = nrow(testset)
+hitB = numeric(n)
+
+for (i in 1:n) {
+  ui = testset[i, 1]
+  tm = testset[i, 2]
+  
+  recB = calculateRecommendationB(ui)
+  
+  if (tm %in% recB$movie) {
+    hitB[i] = 1
+  }
+}
+
+
+HitRate10_B = mean(hitB)
+HitRate10_B
+
+
+
+
+```
+
+8.
+```{r}
+# proportions
+pA = mean(hitA)
+pB = mean(hitB)
+alpha = 0.05
+
+# counts
+nA = length(hitA)
+nB = length(hitB)
+
+# pooled proportion
+p_pool = (sum(hitA) + sum(hitB)) / (nA + nB)
+
+# standard error
+SE = sqrt(p_pool * (1 - p_pool) * (1/nA + 1/nB))
+
+# Z-statistic
+Z = (pA - pB) / SE
+
+# p-value
+p_value = 2 * (1 - pnorm(abs(Z)))
+p_value
+if (p_value < alpha) {
+  cat("\n Conclusion: Since p-value <", alpha, 
+      ", we reject H0. The performance of Model A and Model B is NOT similar.\n")
+} else {
+  cat("\n Conclusion: Since p-value >=", alpha, 
+      ", we fail to reject H0. The performance of Model A and Model B is statistically similar.\n")
+}
+
+```

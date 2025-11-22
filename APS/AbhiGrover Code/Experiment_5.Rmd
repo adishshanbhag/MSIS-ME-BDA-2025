@@ -1,0 +1,271 @@
+---
+title: "Experiment_5"
+output: html_document
+date: "2025-11-03"
+---
+
+1. Generate nsamples=100 samples from uniform distribution (X~U(0,5)). Find sample 
+mean of these 100 samples. Repeat the experiment for ntrials=10000 trials and store 
+sample means in a vector ‘mx’. Plot density histogram of mx and overlay a Gaussian 
+curve.
+```{r}
+library(moments)
+ntrials = 10000
+nsamples = 100 #whether n is large or not
+mx = vector("numeric", ntrials )
+mx = replicate(ntrials, mean(runif(nsamples, 0, 5)))
+
+k = seq(min(mx), max(mx), by = 0.001)
+gaus_pdf = dnorm(k, mean(mx), sd(mx))
+hist(mx, breaks = 40, freq = FALSE)
+lines(k, gaus_pdf, col = "red")
+sprintf("Skewness: %f ", skewness(mx))
+sprintf("Kurtosis: %f", kurtosis(mx))
+
+#since skewness is close to 0, the random variable is gaussian
+```
+2. Generate nsamples=100 samples from Exponential distribution (X~Exp(5)). Find 
+sample mean of these 100 samples. Repeat the experiment for ntrials=10000 trials 
+and store sample means in a vector ‘mx’. Plot density histogram of mx and overlay a 
+Gaussian curve.
+```{r}
+nsamples = 200
+mx = replicate(ntrials, mean(rexp(nsamples,5)))
+k = seq(min(mx), max(mx), by = 0.001)
+gaus_pdf = dnorm(k, mean(mx), sd(mx))
+hist(mx, breaks = 40, freq = FALSE)
+lines(k, gaus_pdf, col = "red")
+sprintf("Skewness: %f ", skewness(mx))
+sprintf("Kurtosis: %f", kurtosis(mx))
+#since the skewness is closer to 0, it is gaussian.
+
+```
+3. Generate nsamples=100 samples from Gaussian distribution (X~N(0,5)). Find sample 
+mean of these 100 samples. Repeat the experiment for ntrials=10000 trials and store 
+sample means in a vector ‘mx’. Plot density histogram of mx and overlay a Gaussian 
+curve.
+
+```{r}
+nsamples = 100
+mx = replicate(ntrials, mean(rnorm(nsamples, 0, 5)))
+k = seq(min(mx), max(mx), by = 0.001)
+gaus_pdf = dnorm(k, mean(mx), sd(mx))
+hist(mx, breaks = 40, freq = FALSE)
+lines(k, gaus_pdf, col = "red")
+sprintf("Skewness: %f ", skewness(mx))
+sprintf("Kurtosis: %f", kurtosis(mx))
+#Skewness is closer to 0, hence the random vairable is gaussian
+```
+
+4. Generate nsamples=100 samples. Each sample can randomly come from one of the 
+following three distributions (X~U(0,5), X~Exp(5), X~N(0,5)). Find sample mean of 
+these 100 samples. Repeat the experiment for ntrials=10000 trials and store sample 
+means in a vector ‘mx’. Plot density histogram of mx and overlay a Gaussian curve.
+
+```{r}
+library(moments)
+
+ntrials = 10000
+nsamples = 10
+mx = numeric(ntrials)
+
+suppressWarnings({
+  for (i in 1:ntrials) {
+    x = numeric(nsamples)
+    for (j in 1:nsamples) {
+      s = sample(1:3, size = 1)
+      if (s == 1) {
+        x[j] = runif(1, 0, 5)       # generate ONE uniform sample
+      } else if (s == 2) {
+        x[j] = rexp(1, rate = 5)    # generate ONE exponential sample
+      } else {
+        x[j] = rnorm(1, 0, 5)       # generate ONE normal sample
+      }
+    }
+    mx[i] = mean(x)
+  }
+})
+
+# Create Gaussian fit values
+k = seq(min(mx), max(mx), length.out = 1000)
+gaus_pdf = dnorm(k, mean(mx), sd(mx))
+
+# Plot histogram with Gaussian overlay
+hist(mx, breaks = 40, freq = FALSE)
+lines(k, gaus_pdf, col = "red", lwd = 2)
+
+# Print skewness and kurtosis
+cat(sprintf("Skewness: %f\n", skewness(mx)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(mx)))
+
+#Skewness is closer to 0, hence the random vairable is gaussian
+```
+5.  In each step 1-4, decrease the variable ‘nsamples’ and identify the value 
+when the mean distribution stops being Gaussian (i.e. identify how much ‘nsamples’ 
+should be considered as large).
+
+For the uniform distribution, the mean distribution is not gaussian at nsamples = 1 but it is gaussian for nsamples = 2. Hence 2 can be considered as large.
+
+For Exponential distribution, the mean distribution is skewed for nsamples <40. Hence nsamples can be considered large for nsamples values >=40
+
+For Gaussian distribution, any value > 0 is will be gaussian. 
+
+For the combined samples, the skewness is least at nsamples = 7. Hence large value can be considered for nsamples >=8
+
+6. Generate simulated data: Select x in the range (1,5,by=0.01); y=a+b*x+d where a=1.2, 
+b=2.1, d~N(0,2). Plot a scatter plot y vs x
+
+```{r}
+a=1.2
+b = 2.1
+x = seq(1, 5, by = 0.01)
+y = numeric(length(x))
+for (j in 1: length(x)){
+  y[j] = a+b*x+rnorm(1, mean=0, sd =2)
+}
+plot(x,y)
+```
+
+7. Train a linear model on y vs x. Find the coefficients a, b and mean of error residuals 
+(me)
+```{r}
+train = as.data.frame(cbind(y,x))
+mymod = lm(y~x, data = train)
+ypred = predict(mymod, train)
+me = mean(y-ypred)
+ea = mymod$coefficients[1]
+eb = mymod$coefficients[2]
+
+```
+
+8. Repeat steps 6-7 for 1000 trials. Evaluate a, b and me for each trial and store it in a 
+vector. Plot three density histogram (a) a, (b) b, and (c) me. Overlay a Gaussian curve in 
+each case. Use the plot, skewness and Kurtosis values to identify if these variables are 
+from Gaussian distribution.
+
+```{r}
+ntrials=1000
+v1=numeric(ntrials)
+v2=numeric(ntrials)
+v3=numeric(ntrials)
+for(i in 1:ntrials)
+{
+  a=1.2
+  b=2.1
+  x=seq(1,5,by=0.01)
+  y=numeric(length(x))
+  for(j in 1:length(x))
+  {
+    y[j]=a+b*x[j]+rnorm(1,mean=0,sd=2)#y=a+b(x)+d
+  }
+  #learn alinear regression model
+  train=as.data.frame(cbind(x,y))
+  mymod=lm(y~x,data=train)
+  ypred=predict(mymod,train)
+  v1[i]=mean(y-ypred) #variable 1
+  v2[i]=mymod$coefficients[1] #variable 2
+  v3[i]=mymod$coefficients[2] #variable 3
+}
+#for ME
+hist(v1,breaks = 40,freq = FALSE)
+k = seq(min(v1), max(v1), by = 1e-17)
+gpdf = dnorm(k, mean(v1), sd(v1))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v1)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v1)))
+
+```
+```{r}
+#for A
+hist(v2,breaks = 40,freq = FALSE)
+k = seq(min(v2), max(v2), by = 0.001)
+gpdf = dnorm(k, mean(v2), sd(v2))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v2)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v2)))
+```
+```{r}
+#for B
+hist(v3,breaks = 40,freq = FALSE)
+k = seq(min(v3), max(v3), by = 0.001)
+gpdf = dnorm(k, mean(v3), sd(v3))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v3)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v3)))
+```
+9. Exploratory: Repeat steps 6-8. In this step assume that y=a+b*x+d where a=1.2, b=2.1, 
+and d is from a t-distribution with degree of freedom as 3. 
+
+```{r}
+a=1.2
+b = 2.1
+x = seq(1, 5, by = 0.01)
+y = numeric(length(x))
+suppressWarnings({
+  for (j in 1: length(x)){
+  y[j] = a+b*x+rt(1,3)
+}
+})
+train = as.data.frame(cbind(y,x))
+mymod = lm(y~x, data = train)
+ypred = predict(mymod, train)
+me = mean(y-ypred)
+ea = mymod$coefficients[1]
+eb = mymod$coefficients[2]
+
+```
+
+```{r}
+ntrials=1000
+v1=numeric(ntrials)
+v2=numeric(ntrials)
+v3=numeric(ntrials)
+for(i in 1:ntrials)
+{
+  a=1.2
+  b=2.1
+  x=seq(1,5,by=0.01)
+  y=numeric(length(x))
+  for(j in 1:length(x))
+  {
+    y[j]=a+b*x[j]+rt(1,3)#y=a+b(x)+d
+  }
+  #learn alinear regression model
+  train=as.data.frame(cbind(x,y))
+  mymod=lm(y~x,data=train)
+  ypred=predict(mymod,train)
+  v1[i]=mean(y-ypred) #variable 1
+  v2[i]=mymod$coefficients[1] #variable 2
+  v3[i]=mymod$coefficients[2] #variable 3
+}
+#for ME
+hist(v1,breaks = 40,freq = FALSE)
+k = seq(min(v1), max(v1), by = 1e-17)
+gpdf = dnorm(k, mean(v1), sd(v1))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v1)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v1)))
+```
+```{r}
+#for A
+hist(v2,breaks = 40,freq = FALSE)
+k = seq(min(v2), max(v2), by = 0.001)
+gpdf = dnorm(k, mean(v2), sd(v2))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v2)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v2)))
+```
+
+
+```{r}
+#for B
+hist(v3,breaks = 40,freq = FALSE)
+k = seq(min(v3), max(v3), by = 0.001)
+gpdf = dnorm(k, mean(v3), sd(v3))
+lines(k, gpdf, col = "red")
+cat(sprintf("Skewness: %f\n", skewness(v3)))
+cat(sprintf("Kurtosis: %f\n", kurtosis(v3)))
+```
+```{r}
+
+```

@@ -1,0 +1,159 @@
+---
+title: "Exp4"
+output: html_document
+date: "2025-10-27"
+---
+
+Generate a binomial random variable b~B(10,0.4), where n=10 and p=0.4. Repeat the 
+experiment for 10000 trials and store it in a vector ‘x’.
+```{r}
+samples = numeric(10000)
+samples = rbinom(10000, 10, 0.4)
+#for (i in 1:10000){
+#samples[i] = rbinom(1, 10, 0.4)  
+#}
+```
+
+Convert x to a zero mean and unit variance random variable y. Draw a Density 
+histogram for y. 
+```{r}
+y = scale(samples, center = TRUE, scale = TRUE)
+hist(y, breaks = 40, freq = FALSE)
+```
+Using the values in y, overlay a normal density function on the histogram in step 2
+```{r}
+k = seq(min(y), max(y), by = 0.001)
+gpdf = dnorm(k,mean(y), sd = sd(y))
+hist(y, breaks = 40, freq = FALSE)
+lines(k, gpdf, col = "red")
+
+```
+Repeat step 1-3 by taking n as 50, 100 and 500. What are your observations?
+```{r}
+n = c(50, 100, 500, 1000)
+samples = numeric(10000)
+for (nn in n){
+  for(i in 1:10000){
+  samples[i]=rbinom(1,nn,0.4)
+}
+y = scale(samples)
+k = seq(min(y), max(y), by = 0.001)
+gpdf = dnorm(k,mean(y), sd = sd(y))
+hist(y, breaks = 40, freq = FALSE)
+lines(k, gpdf, col = "red")
+}
+
+```
+Download “biketental.csv”. Define a variable (Z) as number of rentals/day. Transform Z 
+to a zero mean and unit variance variable (Y). Write a code to plot the Density 
+histogram for Y. In Density histogram x-axis is the variable and y-axis is the density 
+(count/Total count). Choose number of bins as 40
+
+```{r}
+ndata = read.csv("E:/251100670036/APS/bikerental.csv")
+Z = ndata[,13]
+Y = scale(Z)
+hist(Y, breaks = 40, freq=FALSE)
+```
+Using the values in Y, overlay a normal density function on the histogram in step 5.
+```{r}
+k = seq(min(Y), max(y), by = 0.001)
+gpdf = dnorm(k, mean = mean(Y), sd = sd(Y))
+hist(Y, breaks = 40, freq=FALSE)
+lines(k, gpdf, col = "red")
+```
+
+Using correlation as metric, identify two features (out of columns 1-11) which have 
+maximum correlation with Y.
+
+```{r}
+corr_metric = numeric(length = ncol(Y))
+X = ndata[,2:12]
+X= scale(X)
+for(i in 1:11){
+    corr_metric[i] = abs(cor(X[,i],Y))
+}
+corr_metric = order(corr_metric, decreasing = TRUE)[1:2]
+corr_metric
+```
+
+Implement a linear regression (Y vs (Two features in step 7)). Split the dataset into 
+training and test set. Find mean absolute error for the training and test set.
+```{r}
+nr = nrow(X)
+Xnew = X[,corr_metric]
+Xnew = cbind(Y, Xnew)
+s = sample(1:nr, size = 0.8*nr, replace = FALSE)
+train = as.data.frame(Xnew[s,])
+test = as.data.frame(Xnew[-s,])
+lmod = lm(V1~., data = train)
+ytrainPred = predict(lmod, train)
+ytestPred = predict(lmod, test)
+trainmae = mean(abs(ytrainPred-train[,1]))
+testmae = mean(abs(ytestPred-test[,1]))
+trainmae
+testmae
+```
+Plot a histogram for the variable e=Y-Yp, where Yp are the predictions on the training 
+set instep 9. Fit a Gaussian distribution to e and show it on the histogram.
+
+```{r}
+e = Y - ypredtrain
+k = seq(min(e), max(e), by = 0.001)
+gaus_pdf = dnorm(k, mean = mean(e), sd = sd(e))
+hist(e, breaks = 40, freq = FALSE)
+lines(k, gaus_pdf, col = "red" )
+```
+
+Exploratory: Implement linear regression in step 8 for all combinations of 2 features 
+(55 combinations). Print Train MAE and Test MAE in each case.
+
+```{r}
+count = 0
+for(i in 2:12){
+  for (j in i:12){
+    if (i==j){
+      next
+    }
+    Xnew = cbind(ndata[,i], ndata[,j])
+    Xnew = cbind(Y=Y, Xnew)
+    s2 = sample(1:nr, size = 0.8*nr, replace = FALSE)
+    train = as.data.frame(Xnew[s2,])
+    test = as.data.frame(Xnew[-s2,])
+    lmod = lm(V1~., data = train)
+    ytrainPred = predict(lmod, train)
+    ytestPred = predict(lmod, test)
+    trainmae = mean(abs(ytrainPred-train[,1]))
+    testmae = mean(abs(ytestPred-test[,1]))
+    print(paste("For Column: ", i, " and ", j, "trainMAE: ", trainmae, "and TestMae: ", testmae))
+    count=count+1
+  }
+}
+print(count)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
